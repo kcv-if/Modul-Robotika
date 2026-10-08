@@ -444,7 +444,7 @@ Kalian akan banyak memakai action nanti saat masuk ke navigasi. Perintah "pergi 
 
 ## 13. QoS
 
-Bagian ini sering dilewati mahasiswa, lalu menghabiskan satu sesi lab karena topic yang kelihatannya benar tapi tidak menyambung.
+Bagian ini sering dilewati mahasiswa, lalu membuang waktu berjam-jam karena topic yang kelihatannya benar tapi tidak menyambung.
 
 QoS singkatan dari Quality of Service, yaitu sekumpulan pengaturan yang menentukan bagaimana pesan dikirim. Publisher punya pengaturan QoS, subscriber juga. Kalau keduanya tidak kompatibel, koneksinya tidak terbentuk sama sekali. Tidak ada pesan error. Topic tetap muncul di `ros2 topic list`, dan data tidak pernah sampai.
 
@@ -647,6 +647,6 @@ Materi ini adalah ringkasan yang disusun untuk urutan perkuliahan kita. Penjelas
 
 Animasi dan screenshot di bagian 4, 6, 11, dan 12 diambil dari dokumentasi resmi ROS 2, filenya tersimpan di folder `media/ros2-docs/`. Sumbernya adalah repositori [ros2/ros2_documentation](https://github.com/ros2/ros2_documentation) cabang `jazzy`, di bawah lisensi [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/). Filenya kami salin apa adanya tanpa modifikasi.
 
-File disalin ke folder lokal, bukan ditautkan langsung ke internet, supaya materi tetap tampil utuh saat jaringan lab dibatasi.
+File disalin ke folder lokal, bukan ditautkan langsung ke internet, supaya materi tetap tampil utuh tanpa koneksi internet.
 
 Diagram selebihnya, yaitu peta materi di awal, diagram beda kecepatan node di bagian 2, diagram launch file di bagian 15, dan diagram bag di bagian 16, ditulis dengan sintaks mermaid dan khusus dibuat untuk mata kuliah ini. Diagram mermaid tampil sebagai gambar kalau file dibuka lewat GitHub, GitLab, Obsidian, atau pratinjau markdown di VS Code. Di penampil markdown sederhana, isinya tampil sebagai teks dan masih terbaca.

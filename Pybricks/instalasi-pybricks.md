@@ -156,7 +156,7 @@ Hati-hati dengan hub kuning di baris pertama. Itu SPIKE Prime, bentuknya mirip t
 
 ![Mengisi nama hub](media/instalasi/05-beri-nama-hub.png)
 
-Tulisan optional di sini menjebak. Kalau dibiarkan, semua hub di lab akan bernama Pybricks Hub. Saat lima belas orang mencari hub-nya masing-masing di daftar Bluetooth yang isinya lima belas nama identik, kelas berhenti.
+Tulisan optional di sini menjebak. Kalau dibiarkan, semua hub akan bernama Pybricks Hub. Saat banyak orang mencari hub-nya masing-masing di daftar Bluetooth yang isinya nama identik semua, tidak ada yang tahu mana hub miliknya.
 
 Nama yang dipakai angkatan sebelumnya berupa nama hewan dan nama kota. Apa saja boleh asal berbeda. Tempelkan label fisik dengan nama yang sama di hub itu.
 
@@ -428,7 +428,7 @@ Ini yang membedakan hub dari mikrokontroler yang harus selalu terhubung ke kompu
 
 Setelah `pybricksdev` terpasang, mengirim program ke hub tidak butuh internet sama sekali. Yang dipakai cuma Bluetooth antara laptop dan hub.
 
-Internet hanya dibutuhkan untuk dua hal. Pertama, memasang `pybricksdev` dan `pybricks` di bagian 3.2. Kedua, membuka `code.pybricks.com` untuk memasang atau mengembalikan firmware. Jaringan lab tidak selalu bisa diandalkan, jadi kerjakan keduanya dari koneksi yang lancar sebelum datang ke praktikum.
+Internet hanya dibutuhkan untuk dua hal. Pertama, memasang `pybricksdev` dan `pybricks` di bagian 3.2. Kedua, membuka `code.pybricks.com` untuk memasang atau mengembalikan firmware. Kerjakan keduanya dari koneksi yang lancar sebelum praktikum.
 
 ## Bagian 5: Mengembalikan firmware LEGO
 
@@ -459,7 +459,7 @@ Selama Pybricks terpasang, aplikasi LEGO tidak akan mengenali hub. Keduanya tida
 | Di Windows, muncul `Activate.ps1 cannot be loaded because running scripts is disabled on this system` | PowerShell memblokir skrip aktivasi environment | Jalankan `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` sekali, lalu buka terminal baru |
 | `pip install` ditolak dengan `externally-managed-environment` | pip dijalankan di Python sistem, bukan di environment | Aktifkan `.venv` dulu, lihat jalur A di bagian 3.2 |
 | `Searching for Kancil...` lalu `TimeoutError` | Hub mati, nama salah ketik, hub masih tersambung ke tab `code.pybricks.com` atau laptop lain, atau perintah dijalankan dari WSL2 | Nyalakan hub sampai lampunya berkedip biru, cek ejaan nama termasuk huruf besar dan kecil, tutup tab `code.pybricks.com`, jalankan dari PowerShell Windows |
-| Lupa nama hub | Nama diberi saat memasang firmware | Nyalakan hanya hub kalian di dekat laptop, lalu kirim program berisi `print(InventorHub().system.info()["name"])` tanpa `--name`. Tanpa `--name`, `pybricksdev` menyambung ke hub Pybricks pertama yang ditemukan, jadi jangan lakukan ini di lab yang penuh hub menyala |
+| Lupa nama hub | Nama diberi saat memasang firmware | Nyalakan hanya hub kalian di dekat laptop, lalu kirim program berisi `print(InventorHub().system.info()["name"])` tanpa `--name`. Tanpa `--name`, `pybricksdev` menyambung ke hub Pybricks pertama yang ditemukan, jadi jangan lakukan ini saat banyak hub lain menyala di sekitar |
 | Di macOS, `pybricksdev` tidak pernah menemukan hub | Terminal atau VS Code belum diberi izin Bluetooth | System Settings, Privacy & Security, Bluetooth, aktifkan Terminal atau VS Code |
 | Error panjang yang berakhir dengan `CalledProcessError` dan `mpy-cross` | Ada kesalahan tulis Python, misalnya kurung atau titik dua yang kurang. Program gagal dikompilasi sebelum dikirim | Cari baris yang diberi garis merah oleh VS Code. Pesan error ini tidak menyebut nomor barisnya |
 | Hub tidak ditemukan padahal lampunya berkedip biru | Hub sudah terpasang di menu Bluetooth sistem operasi | Hapus hub dari daftar Bluetooth sistem, lalu jalankan `pybricksdev` lagi |
@@ -471,13 +471,13 @@ Selama Pybricks terpasang, aplikasi LEGO tidak akan mengenali hub. Keduanya tida
 | Hub tidak menyala sama sekali | Baterai habis | Isi lewat microUSB, tunggu beberapa menit sebelum mencoba lagi |
 | Program berjalan tapi motor diam | Motor tercolok di port yang berbeda dari yang ditulis di kode | Cek huruf port di badan hub, sesuaikan `Port.A` sampai `Port.F` di kode |
 
-Kalau masalah kalian tidak ada di tabel ini, catat pesan error persis seperti yang muncul, sistem operasi, browser, dan versi `pybricksdev` yang dipakai, serta nama hub dan slot yang sedang terpilih. Bawa catatan itu ke sesi lab.
+Kalau masalah kalian tidak ada di tabel ini, catat pesan error persis seperti yang muncul, sistem operasi, browser, dan versi `pybricksdev` yang dipakai, serta nama hub dan slot yang sedang terpilih. Sertakan catatan itu saat bertanya.
 
 ## Sebelum praktikum pertama
 
 Baterai hub terpasang di dalam dan diisi lewat microUSB. Isi penuh malam sebelumnya. Hub dengan baterai lemah bisa tersambung tapi motornya bergerak lebih lambat dari yang kalian perintahkan, dan gejalanya mudah disalahartikan sebagai kode yang salah.
 
-Pasang `pybricksdev` dan `pybricks` di rumah, dari internet yang lancar, lalu coba kirim program di bagian 3.3 sekali. Masalah environment Python dan izin Bluetooth jauh lebih cepat diselesaikan sebelum praktikum daripada saat lima belas orang mengantre bantuan.
+Pasang `pybricksdev` dan `pybricks` di rumah, dari internet yang lancar, lalu coba kirim program di bagian 3.3 sekali. Masalah environment Python dan izin Bluetooth jauh lebih cepat diselesaikan sebelum praktikum daripada saat praktikum berlangsung.
 
 Bawa kabel microUSB. Satu kabel per kelompok sudah cukup, tapi tanpa kabel sama sekali kalian tidak bisa memasang firmware.
 

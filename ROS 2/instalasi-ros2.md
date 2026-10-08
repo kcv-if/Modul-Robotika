@@ -158,7 +158,7 @@ Virtualisasi harus aktif. Buka Task Manager, masuk ke Performance, pilih CPU, la
 
 Pasang juga driver GPU dari situs vendornya, jangan mengandalkan Windows Update. Driver inilah yang menentukan apakah rendering memakai GPU asli atau CPU. Rendering CPU membuat Gazebo berjalan sekitar 20 kali lebih lambat. Ambil driver sesuai kartu grafis kalian dari Intel, AMD, atau NVIDIA, dan pasang sebelum melanjutkan.
 
-Kalau laptop dikelola IT kampus dan WSL diblokir, ada tiga hal yang bisa dicoba. Pertama, minta ke IT. WSL2 fitur pengembang standar dan permintaan untuk mengaktifkan Virtual Machine Platform biasanya disetujui. Kedua, kalau yang diblokir cuma distribusi WSL-nya, Docker Desktop mungkin masih bisa, walaupun Docker Desktop butuh virtualisasi yang sama. Ketiga, kalau hypervisor-nya sendiri yang diblokir, tidak ada opsi lokal yang bisa dipakai. Hubungi dosen untuk akses mesin lab.
+Kalau laptop dikelola IT kampus dan WSL diblokir, ada tiga hal yang bisa dicoba. Pertama, minta ke IT. WSL2 fitur pengembang standar dan permintaan untuk mengaktifkan Virtual Machine Platform biasanya disetujui. Kedua, kalau yang diblokir cuma distribusi WSL-nya, Docker Desktop mungkin masih bisa, walaupun Docker Desktop butuh virtualisasi yang sama. Ketiga, kalau hypervisor-nya sendiri yang diblokir, tidak ada opsi lokal yang bisa dipakai di laptop itu.
 
 ### 2.3 Pasang WSL2 dan Ubuntu
 
@@ -361,7 +361,7 @@ Dua pengaturan berikut berlaku di semua sistem operasi dan keduanya wajib.
 
 ### 5.1 ROS_DOMAIN_ID
 
-Node ROS 2 yang berada pada domain yang sama akan saling menemukan dan saling berkirim pesan secara otomatis. Nilai bawaannya 0 untuk semua orang. Di lab berisi 60 mesin dalam satu jaringan, artinya node semua orang saling terhubung. Mendebug robot yang bergerak sendiri karena menerima perintah dari laptop orang lain bukan pengalaman yang menyenangkan.
+Node ROS 2 yang berada pada domain yang sama akan saling menemukan dan saling berkirim pesan secara otomatis. Nilai bawaannya 0 untuk semua orang. Kalau banyak laptop berada di satu jaringan yang sama, artinya node semua orang saling terhubung. Mendebug robot yang bergerak sendiri karena menerima perintah dari laptop orang lain bukan pengalaman yang menyenangkan.
 
 Pakai nomor yang diberikan dosen, atau nomor kursi kalian:
 
@@ -510,4 +510,4 @@ echo $RMW_IMPLEMENTATION        # rmw_cyclonedds_cpp
 | WSL: GUI tidak muncul sama sekali | Distro masih WSL 1 | `wsl --set-version Ubuntu-24.04 2` |
 | WSL: `glxinfo` menyebut `llvmpipe` | Driver vGPU vendor belum terpasang | Pasang driver Intel, AMD, atau NVIDIA, lalu `wsl --shutdown` |
 
-Kalau masalah kalian tidak ada di tabel ini, catat pesan error persis seperti yang muncul beserta perintah yang dijalankan, lalu bawa ke sesi lab.
+Kalau masalah kalian tidak ada di tabel ini, catat pesan error persis seperti yang muncul beserta perintah yang dijalankan, lalu sertakan saat bertanya.
