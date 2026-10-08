@@ -341,13 +341,43 @@ Ada satu jebakan yang perlu diketahui soal Debian. `packages.ros.org` memang pun
 
 ### 4.1 Distrobox
 
-Distrobox menjalankan image kuliah sebagai container yang sengaja tidak diisolasi. Home directory, GPU, socket X11 atau Wayland, dan terminal kalian semuanya ikut masuk ke dalamnya. Untuk yang belum pernah memakai container, ini membuat pengalamannya jauh lebih dekat ke instalasi biasa.
+Distrobox menjalankan Ubuntu 24.04 sebagai container yang sengaja tidak diisolasi. Home directory, GPU, socket X11 atau Wayland, dan terminal kalian semuanya ikut masuk ke dalamnya. Untuk yang belum pernah memakai container, ini membuat pengalamannya jauh lebih dekat ke instalasi biasa.
 
 GPU langsung bekerja tanpa flag tambahan. Masalah label SELinux di Fedora juga tidak muncul, karena Distrobox mematikan konfinemen SELinux untuk container tersebut.
 
 Ada satu hal yang perlu diwaspadai. Flag `--home` tidak mengisolasi home kalian. Dokumentasinya menyatakan bahwa flag itu tidak mencegah home host ikut ter-mount, gunanya cuma supaya dotfile container tidak mengotori home asli. Artinya isi `~/.bashrc`, variabel `PYTHONPATH`, atau blok `conda init` yang nyangkut di sistem kalian tetap bocor ke dalam container. Error yang muncul karena hal ini biasanya cuma terjadi di satu laptop dan sulit ditelusuri.
 
-Perintah pembuatan container dan nama image-nya diberikan di kelas.
+Pasang Distrobox dan Podman dari package manager distro kalian:
+
+```bash
+sudo dnf install distrobox            # Fedora, Podman sudah terpasang
+sudo apt install distrobox podman     # Debian 12 dan 13
+sudo pacman -S distrobox podman       # Arch, Manjaro
+sudo zypper install distrobox podman  # openSUSE
+```
+
+Kalau distro kalian tidak menyediakan paketnya, ikuti cara instalasi di README Distrobox.
+
+Buat container Ubuntu 24.04 lalu masuk ke dalamnya:
+
+```bash
+distrobox create --name ros2 --image docker.io/library/ubuntu:24.04
+distrobox enter ros2
+```
+
+Pengguna kartu grafis NVIDIA dengan driver proprietary tambahkan `--nvidia` di perintah `create`. Kartu Intel dan AMD tidak perlu flag apa pun. Pertama kali masuk, Distrobox menyiapkan container dan butuh beberapa menit.
+
+Prompt yang berubah menandakan kalian sudah di dalam container. Kerjakan langkah 1.1 sampai 1.3 di sana tanpa perubahan. `sudo` di dalam container tidak meminta password.
+
+Langkah 1.4 perlu sedikit diubah. `~/.bashrc` dipakai bersama oleh host dan container, jadi baris `source` biasa akan error setiap kali kalian membuka terminal di host, karena `/opt/ros/jazzy` cuma ada di dalam container. Pakai versi ini:
+
+```bash
+echo '[ -f /opt/ros/jazzy/setup.bash ] && source /opt/ros/jazzy/setup.bash' >> ~/.bashrc
+```
+
+Setiap membuka terminal baru, jalankan `distrobox enter ros2` dulu sebelum memakai perintah `ros2`, `colcon`, atau `gz`. Untuk keluar, ketik `exit`.
+
+Setelah ini lompat ke [Bagian 5](#bagian-5-pengaturan-wajib-untuk-semua-orang).
 
 ### 4.2 NixOS
 
