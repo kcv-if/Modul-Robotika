@@ -357,7 +357,7 @@ Setelah ini lompat ke [Bagian 5](#bagian-5-pengaturan-wajib-untuk-semua-orang).
 
 ## Bagian 5: Pengaturan wajib untuk semua orang
 
-Dua pengaturan berikut berlaku di semua sistem operasi dan keduanya wajib.
+Pengaturan 5.1 wajib di semua sistem operasi. Pengaturan 5.2 khusus macOS dan opsional.
 
 ### 5.1 ROS_DOMAIN_ID
 
@@ -371,20 +371,11 @@ echo 'export ROS_DOMAIN_ID=42' >> ~/.bashrc   # ganti 42 dengan nomor kalian
 
 Rentang aman untuk Linux adalah 0 sampai 101. Untuk macOS dan Windows, 0 sampai 166.
 
-### 5.2 Middleware
+### 5.2 Middleware (khusus macOS, opsional)
 
-Satu kelas memakai Cyclone DDS.
+Ubuntu, WSL2, dan Linux lain cukup memakai middleware bawaan, Fast DDS. Tidak perlu mengubah apa-apa.
 
-Alasannya, dengan middleware bawaan (Fast DDS), setiap perintah ROS di macOS memunculkan banyak pesan `[SYSTEM Error]` soal thread affinity. Fungsinya tetap berjalan, tapi tampilannya merah semua dan membingungkan. Cyclone tidak punya masalah tersebut. Karena satu kelas harus memakai middleware yang sama supaya bisa saling berkomunikasi, semuanya ikut Cyclone.
-
-Untuk Ubuntu, WSL2, dan Linux:
-
-```bash
-sudo apt install ros-jazzy-rmw-cyclonedds-cpp
-echo 'export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp' >> ~/.bashrc
-```
-
-Untuk macOS, jalankan dari dalam folder `ros_ws`:
+Di macOS, Fast DDS memunculkan banyak pesan `[SYSTEM Error]` soal thread affinity. Fungsinya tetap berjalan, tapi tampilannya merah semua dan membingungkan. Kalau terganggu, pindah ke Cyclone DDS yang tidak punya masalah tersebut. Jalankan dari dalam folder `ros_ws`:
 
 ```bash
 pixi add ros-jazzy-rmw-cyclonedds-cpp
@@ -412,6 +403,8 @@ echo 'export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp' > "$CONDA_PREFIX/etc/conda/a
 ```
 
 Skrip di folder `activate.d` dijalankan otomatis setiap kali environment diaktifkan, baik lewat conda, mamba, maupun micromamba.
+
+Setelah pindah, `echo $RMW_IMPLEMENTATION` harus mencetak `rmw_cyclonedds_cpp`.
 
 ## Bagian 6: Verifikasi
 
@@ -483,7 +476,6 @@ Kalau perintah di terminal 1 jalan tapi jendelanya tidak muncul, masalahnya di t
 
 ```bash
 echo $ROS_DOMAIN_ID          # nomor yang diberikan ke kalian
-echo $RMW_IMPLEMENTATION     # rmw_cyclonedds_cpp
 ```
 
 ## Instalasi dianggap selesai kalau
@@ -493,7 +485,6 @@ ros2 doctor                     # All N checks passed
 ros2 run demo_nodes_cpp talker  # Publishing: 'Hello World: 1'
 ros2 run turtlesim turtlesim_node  # jendela kura-kura muncul, bisa digerakkan dengan teleop
 echo $ROS_DOMAIN_ID             # nomor kalian, tidak kosong
-echo $RMW_IMPLEMENTATION        # rmw_cyclonedds_cpp
 ```
 
 ## Masalah yang sering muncul
@@ -506,7 +497,7 @@ echo $RMW_IMPLEMENTATION        # rmw_cyclonedds_cpp
 | `ros-dev-tools` gagal, dependensi tidak terpenuhi | `noble-updates` atau `noble-backports` tidak ada di apt sources | Lihat langkah 1.3 |
 | Talker jalan, listener tidak menerima apa-apa | `ROS_DOMAIN_ID` berbeda antar terminal, atau firewall | Samakan nilainya, lalu cek firewall |
 | macOS: `rclpy` gagal di-import, path Python aneh | Ada `source .../setup.bash` di file startup shell | Hapus baris itu, buka terminal baru |
-| macOS: banyak `[SYSTEM Error]` soal thread affinity | Masih memakai Fast DDS | Pindah ke Cyclone, lihat 5.2 |
+| macOS: banyak `[SYSTEM Error]` soal thread affinity | Bawaan Fast DDS di macOS, tidak berbahaya | Abaikan, atau pindah ke Cyclone, lihat 5.2 |
 | WSL: GUI tidak muncul sama sekali | Distro masih WSL 1 | `wsl --set-version Ubuntu-24.04 2` |
 | WSL: `glxinfo` menyebut `llvmpipe` | Driver vGPU vendor belum terpasang | Pasang driver Intel, AMD, atau NVIDIA, lalu `wsl --shutdown` |
 
