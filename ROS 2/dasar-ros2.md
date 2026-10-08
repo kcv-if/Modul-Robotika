@@ -348,9 +348,11 @@ Build dari akar workspace, bukan dari dalam folder package:
 
 ```bash
 cd ~/ros2_ws
-colcon build
+colcon build --symlink-install
 source install/setup.bash
 ```
+
+`--symlink-install` membuat `install/` berisi tautan ke file sumber kalian, bukan salinannya. Hasilnya, mengubah isi file `.py` langsung berlaku tanpa build ulang. Build ulang tetap wajib kalau kalian mengubah `setup.py` atau `package.xml`, atau menambah file baru seperti launch file. Kalau sebelumnya pernah build tanpa flag ini, hapus dulu `build/` dan `install/` sebelum memakainya.
 
 ### Dua setup script yang berbeda
 
@@ -559,7 +561,7 @@ from glob import glob
 Build ulang, source, jalankan:
 
 ```bash
-cd ~/ros2_ws && colcon build && source install/setup.bash
+cd ~/ros2_ws && colcon build --symlink-install && source install/setup.bash
 ros2 launch latihan_ros latihan.launch.py
 ```
 
@@ -608,6 +610,7 @@ Tugas mingguan di kelas ini dikumpulkan dalam bentuk bag. Sistem penilaian memut
 |---|---|---|
 | `Package 'latihan_ros' not found` padahal build sukses | Lupa source `install/setup.bash` di terminal baru | `cd ~/ros2_ws && source install/setup.bash` |
 | Build aneh, hasil tidak berubah | `colcon build` dijalankan dari dalam folder package | Selalu build dari `~/ros2_ws` |
+| Kode `.py` sudah diubah, perilaku node tetap lama | Build tanpa `--symlink-install`, jadi yang jalan salinan lama | Build ulang dengan `colcon build --symlink-install` |
 | Build sukses, `ros2 run` tidak menemukan program | Lupa mendaftarkan di `entry_points` | Isi `setup.py`, build ulang |
 | Node hidup, topic ada, data tidak mengalir | QoS tidak kompatibel | `ros2 topic info --verbose`, bandingkan kedua sisi |
 | Node saling tidak melihat sama sekali | `ROS_DOMAIN_ID` berbeda antar terminal | `echo $ROS_DOMAIN_ID` di semua terminal, samakan |
