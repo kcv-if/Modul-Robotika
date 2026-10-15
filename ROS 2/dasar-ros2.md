@@ -862,7 +862,7 @@ Aturan pertama: interface tidak bisa dibuat di package Python. Pembuat kode inte
 ```bash
 cd ~/ros2_ws/src
 ros2 pkg create --build-type ament_cmake --license Apache-2.0 latihan_interfaces
-mkdir latihan_interfaces/msg latihan_interfaces/action
+mkdir latihan_interfaces/msg latihan_interfaces/srv latihan_interfaces/action
 ```
 
 Folder `include` dan `src` yang ikut dibuat tidak dipakai. Biarkan saja.
@@ -875,6 +875,8 @@ ros2_ws/src/
     ├── package.xml
     ├── msg/
     │   └── Status.msg
+    ├── srv/
+    │   └── SetBaterai.srv
     └── action/
         └── Maju.action
 ```
@@ -890,6 +892,19 @@ float32 baterai
 bool sibuk
 ```
 
+Buat file `~/ros2_ws/src/latihan_interfaces/srv/SetBaterai.srv`:
+
+```
+# Request
+float32 nilai
+---
+# Response
+bool success
+string message
+```
+
+Service punya dua bagian yang dipisah `---`: request di atas, response di bawah.
+
 Buat file `~/ros2_ws/src/latihan_interfaces/action/Maju.action`:
 
 ```
@@ -903,7 +918,7 @@ float32 ditempuh
 float32 sisa
 ```
 
-`Maju` baru dipakai di bagian 2 `lanjutan-ros2.md` untuk menggerakkan kura-kura maju sejauh `jarak`. Service ditulis dengan cara yang sama di folder `srv`, dengan dua bagian yang dipisah `---`.
+`Maju` baru dipakai di bagian 2 `lanjutan-ros2.md` untuk menggerakkan kura-kura maju sejauh `jarak`.
 
 Penamaannya diperiksa ketat:
 
@@ -922,6 +937,7 @@ find_package(std_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Status.msg"
+  "srv/SetBaterai.srv"
   "action/Maju.action"
   DEPENDENCIES std_msgs
 )
@@ -990,6 +1006,23 @@ sibuk: false
 
 Tipe topic sengaja ditulis di perintah `echo`. Dengan begitu `echo` bisa mulai mendengarkan sebelum ada publisher.
 
+Service baru bisa dipanggil kalau ada server-nya, jadi untuk sekarang cukup cek bentuknya:
+
+```bash
+ros2 interface show latihan_interfaces/srv/SetBaterai
+```
+
+```
+# Request
+float32 nilai
+---
+# Response
+bool success
+string message
+```
+
+Server dan client-nya ditulis persis seperti `Trigger` di bagian 11. Bedanya, `request.nilai` sekarang berisi data dari pemanggil.
+
 ### Memakai interface dari package lain
 
 Package yang memakai interface ini harus menyebutnya di `package.xml`-nya sendiri, misalnya `<depend>latihan_interfaces</depend>` di `latihan_ros`. Dengan baris itu `colcon` tahu bahwa `latihan_interfaces` harus dibangun lebih dulu. Di kode Python, import-nya sama seperti tipe bawaan:
@@ -997,9 +1030,10 @@ Package yang memakai interface ini harus menyebutnya di `package.xml`-nya sendir
 ```python
 from latihan_interfaces.action import Maju
 from latihan_interfaces.msg import Status
+from latihan_interfaces.srv import SetBaterai
 ```
 
-Setiap kali isi file `.msg` atau `.action` berubah, build ulang, source ulang, lalu jalankan ulang semua node yang memakainya.
+Setiap kali isi file `.msg`, `.srv`, atau `.action` berubah, build ulang, source ulang, lalu jalankan ulang semua node yang memakainya.
 
 | Gejala | Penyebab |
 |---|---|
