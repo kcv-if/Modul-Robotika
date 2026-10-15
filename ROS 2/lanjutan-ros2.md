@@ -1,6 +1,6 @@
 # Lanjutan ROS 2
 
-Materi ini melanjutkan `dasar-ros2.md`. Semua contoh di sini memakai workspace `~/ros2_ws` dan package `latihan_ros` dari materi dasar, jadi selesaikan dulu materi itu, termasuk semua node di bagian 11, 12, dan 14.
+Materi ini melanjutkan `dasar-ros2.md`. Semua contoh di sini memakai workspace `~/ros2_ws` dan package `latihan_ros` dari materi dasar, jadi selesaikan dulu materi itu, termasuk semua node di bagian 11, 12, dan 15, serta package interface di bagian 13.
 
 Seperti materi dasar, semuanya berjalan di turtlesim dan RViz2. Gazebo belum dipakai, sehingga materi ini jalan di semua sistem operasi, termasuk macOS.
 
@@ -10,19 +10,19 @@ Kerjakan sambil mengetik. Setiap bagian menambah file ke package yang sama, dan 
 
 ```mermaid
 graph TD
-    A["1-4. Node yang tidak macet<br/>executor, interface sendiri,<br/>action, lifecycle"] --> B["5-7. Merangkai banyak node<br/>nama, parameter, launch"]
-    B --> C["8-9. Waktu dan ruang<br/>jam simulasi, tf2"]
-    C --> D["10-11. Saat sistem rusak<br/>QoS lanjutan, debugging"]
+    A["1-3. Node yang tidak macet<br/>executor, action, lifecycle"] --> B["4-6. Merangkai banyak node<br/>nama, parameter, launch"]
+    B --> C["7-8. Waktu dan ruang<br/>jam simulasi, tf2"]
+    C --> D["9-10. Saat sistem rusak<br/>QoS lanjutan, debugging"]
 
     style A fill:#9d0208,color:#fff
     style C fill:#2d6a4f,color:#fff
 ```
 
-Bagian 1 menjelaskan kenapa node bisa macet tanpa pesan error apa pun. Bagian 9 yang paling banyak kalian pakai begitu masuk ke Gazebo dan Nav2.
+Bagian 1 menjelaskan kenapa node bisa macet tanpa pesan error apa pun. Bagian 8 yang paling banyak kalian pakai begitu masuk ke Gazebo dan Nav2.
 
 ## 1. Executor dan callback group
 
-Bagian 11 materi dasar memperingatkan bahwa memanggil service secara sinkron dari dalam callback membuat node macet. Di sini kita buat macetnya dengan sengaja, lalu bongkar penyebabnya. Penyebab yang sama muncul lagi di action pada bagian 3 dan di tf2 pada bagian 9.
+Bagian 11 materi dasar memperingatkan bahwa memanggil service secara sinkron dari dalam callback membuat node macet. Di sini kita buat macetnya dengan sengaja, lalu bongkar penyebabnya. Penyebab yang sama muncul lagi di action pada bagian 2 dan di tf2 pada bagian 8.
 
 ### Membuat node macet
 
@@ -237,166 +237,11 @@ ros2 node list
 
 `ros2 node list` menampilkan `/listener` dan `/talker`, padahal yang berjalan cuma satu proses. Kelas `Talker` dan `Listener` dipakai ulang tanpa diubah sedikit pun.
 
-## 2. Interface sendiri
-
-Tipe bawaan seperti `std_msgs/msg/String` dan `geometry_msgs/msg/Twist` cukup untuk banyak hal. Begitu data kalian punya bentuk sendiri, misalnya status robot dengan beberapa kolom, kalian butuh tipe sendiri.
-
-Aturan pertama: interface tidak bisa dibuat di package Python. Pembuat kode interface ROS cuma berjalan di package `ament_cmake`. Jadi kita buat package kedua yang khusus berisi interface, lalu `latihan_ros` memakainya.
-
-```bash
-cd ~/ros2_ws/src
-ros2 pkg create --build-type ament_cmake --license Apache-2.0 latihan_interfaces
-mkdir latihan_interfaces/msg latihan_interfaces/action
-```
-
-Folder `include` dan `src` yang ikut dibuat tidak dipakai. Biarkan saja.
-
-```
-ros2_ws/src/
-├── latihan_ros/              package Python, berisi node
-└── latihan_interfaces/       package CMake, berisi interface saja
-    ├── CMakeLists.txt
-    ├── package.xml
-    ├── msg/
-    │   └── Status.msg
-    └── action/
-        └── Maju.action
-```
-
-### Menulis interface
-
-Buat file `~/ros2_ws/src/latihan_interfaces/msg/Status.msg`:
-
-```
-std_msgs/Header header
-string nama
-float32 baterai
-bool sibuk
-```
-
-Buat file `~/ros2_ws/src/latihan_interfaces/action/Maju.action`:
-
-```
-# Goal
-float32 jarak
----
-# Result
-float32 ditempuh
----
-# Feedback
-float32 sisa
-```
-
-`Maju` dipakai di bagian 3 untuk menggerakkan kura-kura maju sejauh `jarak`. Service ditulis dengan cara yang sama di folder `srv`, dengan dua bagian yang dipisah `---`.
-
-Penamaannya diperiksa ketat:
-
-| Yang dinamai | Aturan | Contoh benar | Contoh salah |
-|---|---|---|---|
-| Tipe, yaitu nama file | Diawali huruf besar, tanpa garis bawah | `Status.msg` | `status.msg` |
-| Field | Huruf kecil, angka, dan garis bawah, diawali huruf | `baterai` | `Baterai` |
-
-### Mendaftarkan dan membangun
-
-Tambahkan di `latihan_interfaces/CMakeLists.txt`, tepat sebelum baris `ament_package()`:
-
-```cmake
-find_package(rosidl_default_generators REQUIRED)
-find_package(std_msgs REQUIRED)
-
-rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/Status.msg"
-  "action/Maju.action"
-  DEPENDENCIES std_msgs
-)
-```
-
-Tambahkan di `latihan_interfaces/package.xml`, di bawah baris `<buildtool_depend>ament_cmake</buildtool_depend>`:
-
-```xml
-  <buildtool_depend>rosidl_default_generators</buildtool_depend>
-  <depend>std_msgs</depend>
-  <exec_depend>rosidl_default_runtime</exec_depend>
-  <member_of_group>rosidl_interface_packages</member_of_group>
-```
-
-| Baris | Gunanya |
-|---|---|
-| `rosidl_generate_interfaces(...)` | Daftar file yang diubah menjadi kode Python dan C++ |
-| `DEPENDENCIES std_msgs` | `Status` memakai `std_msgs/Header`. Setiap package interface lain yang dipakai wajib disebut di sini |
-| `<member_of_group>rosidl_interface_packages</member_of_group>` | Menandai package ini sebagai package interface |
-
-Build dari akar workspace seperti biasa:
-
-```bash
-cd ~/ros2_ws
-colcon build --symlink-install
-source install/setup.bash
-ros2 interface show latihan_interfaces/msg/Status
-```
-
-```
-std_msgs/Header header
-	builtin_interfaces/Time stamp
-		int32 sec
-		uint32 nanosec
-	string frame_id
-string nama
-float32 baterai
-bool sibuk
-```
-
-Coba tanpa menulis kode. Terminal 1:
-
-```bash
-ros2 topic echo /status latihan_interfaces/msg/Status
-```
-
-Terminal 2:
-
-```bash
-ros2 topic pub --once /status latihan_interfaces/msg/Status "{header: {stamp: now, frame_id: base_link}, nama: robot1, baterai: 0.75, sibuk: false}"
-```
-
-Kata `now` diisi waktu saat itu oleh `ros2 topic pub`. Terminal 1 mencetak:
-
-```
-header:
-  stamp:
-    sec: 1792030417
-    nanosec: 199560429
-  frame_id: base_link
-nama: robot1
-baterai: 0.75
-sibuk: false
----
-```
-
-Tipe topic sengaja ditulis di perintah `echo`. Dengan begitu `echo` bisa mulai mendengarkan sebelum ada publisher.
-
-### Memakai interface dari package lain
-
-Package yang memakai interface ini harus menyebutnya di `package.xml`-nya sendiri, misalnya `<depend>latihan_interfaces</depend>` di `latihan_ros`. Dengan baris itu `colcon` tahu bahwa `latihan_interfaces` harus dibangun lebih dulu. Di kode Python, import-nya sama seperti tipe bawaan:
-
-```python
-from latihan_interfaces.action import Maju
-from latihan_interfaces.msg import Status
-```
-
-Setiap kali isi file `.msg` atau `.action` berubah, build ulang, source ulang, lalu jalankan ulang semua node yang memakainya.
-
-| Gejala | Penyebab |
-|---|---|
-| Build gagal, `'Baterai' is an invalid field name.  It should have the pattern '^(?!.*__)(?!.*_$)[a-z][a-z0-9_]*$'` | Nama field diawali huruf besar |
-| Build gagal, `'status' is an invalid message name.  It should have the pattern '^[A-Z][A-Za-z0-9]*$'` | Nama file diawali huruf kecil |
-| Build gagal dengan `KeyError: 'std_msgs'` | Lupa `DEPENDENCIES std_msgs` di `rosidl_generate_interfaces` |
-| `ModuleNotFoundError: No module named 'latihan_interfaces'` | Belum `source install/setup.bash` setelah build |
-
-## 3. Action lanjutan
+## 2. Action lanjutan
 
 `fibonacci_server` di materi dasar punya dua kekurangan yang sudah disebut di sana. Selama satu goal berjalan, node itu tidak bisa mengerjakan hal lain, dan goal-nya tidak bisa dibatalkan. Server yang menggerakkan robot sungguhan tidak boleh begitu. Robot harus bisa dihentikan di tengah jalan, dan selama bergerak ia harus terus membaca sensornya.
 
-Server di bagian ini memakai `Maju` dari bagian 2. Kura-kura maju lurus sejauh `jarak` sambil terus membaca posisinya sendiri. Bentuknya sama dengan yang dikerjakan Nav2 dalam skala besar: menerima tujuan, bergerak sambil memantau posisi, melaporkan kemajuan, dan berhenti kalau dibatalkan.
+Server di bagian ini memakai `Maju` dari bagian 13 materi dasar. Kura-kura maju lurus sejauh `jarak` sambil terus membaca posisinya sendiri. Bentuknya sama dengan yang dikerjakan Nav2 dalam skala besar: menerima tujuan, bergerak sambil memantau posisi, melaporkan kemajuan, dan berhenti kalau dibatalkan.
 
 ### Menulis server yang bisa dibatalkan
 
@@ -495,7 +340,7 @@ if __name__ == '__main__':
 | `self.cmd_pub.publish(Twist())` | `Twist` kosong berarti kecepatan nol. Robot yang dibatalkan harus benar-benar diam |
 | `ReentrantCallbackGroup` dan `MultiThreadedExecutor` | `execute_callback` berjalan lama. Thread lain tetap bebas memproses `pose_callback` dan permintaan pembatalan |
 | `time.sleep(0.1)` | Aman di sini, karena yang tertahan cuma satu thread |
-| `'turtle1/pose'` tanpa garis miring depan | Nama relatif. Alasannya ada di bagian 5 |
+| `'turtle1/pose'` tanpa garis miring depan | Nama relatif. Alasannya ada di bagian 4 |
 
 Daftarkan `'maju_server = latihan_ros.maju_server:main',`, build ulang, lalu jalankan `turtlesim_node` di terminal 1 dan `maju_server` di terminal 2. Di terminal 3:
 
@@ -645,7 +490,7 @@ Klien mencetak `2.0 detik lewat, goal dibatalkan`, lalu diam selamanya. Dengan s
 
 Kembalikan `main` seperti semula sebelum lanjut.
 
-## 4. Lifecycle node
+## 3. Lifecycle node
 
 Node biasa langsung bekerja begitu dijalankan. Untuk sistem besar itu merepotkan. Nav2 misalnya terdiri dari banyak server yang saling bergantung. Perencana jalur tidak berguna sebelum peta dimuat, dan pengendali tidak boleh menggerakkan roda sebelum semuanya siap. Karena itu server-server Nav2 ditulis sebagai lifecycle node, yaitu node yang punya tahapan hidup dan baru bekerja setelah disuruh.
 
@@ -769,9 +614,9 @@ ros2 lifecycle set /lc_talker deactivate
 
 Nav2 menyalakan server-servernya lewat node bernama `lifecycle_manager`, yang memanggil configure lalu activate satu per satu. Kalau Nav2 diam saja, periksa dengan `ros2 lifecycle get` apakah semua server-nya sudah `active`.
 
-## 5. Nama
+## 4. Nama
 
-Bagian 17 materi dasar menyebut beda `chatter` dan `/chatter`. Di sini aturannya lengkap, karena aturan inilah yang membuat satu kode bisa dipakai untuk banyak robot sekaligus.
+Bagian 18 materi dasar menyebut beda `chatter` dan `/chatter`. Di sini aturannya lengkap, karena aturan inilah yang membuat satu kode bisa dipakai untuk banyak robot sekaligus.
 
 Buat file `~/ros2_ws/src/latihan_ros/latihan_ros/putar.py`:
 
@@ -875,11 +720,11 @@ Yang berputar tetap turtle1. Namespace tidak berpengaruh pada nama absolut. Rema
 ros2 run latihan_ros rotate_client --ros-args -r /turtle1/rotate_absolute:=/turtle2/rotate_absolute
 ```
 
-Kali ini turtle2 yang berputar. Pelajarannya, tulis nama relatif di kode, lalu biarkan namespace dan remap yang menentukan tujuannya saat node dijalankan. `maju_server` di bagian 3 sudah ditulis begitu.
+Kali ini turtle2 yang berputar. Pelajarannya, tulis nama relatif di kode, lalu biarkan namespace dan remap yang menentukan tujuannya saat node dijalankan. `maju_server` di bagian 2 sudah ditulis begitu.
 
-## 6. Parameter lanjutan
+## 5. Parameter lanjutan
 
-Bagian 14 materi dasar berhenti pada masalah ini: `ros2 param set` mengubah nilai yang disimpan, tapi node yang membacanya di konstruktor tidak tahu ada perubahan. Bagian ini membuat node bereaksi, menolak nilai yang salah, dan membaca parameter dari file.
+Bagian 15 materi dasar berhenti pada masalah ini: `ros2 param set` mengubah nilai yang disimpan, tapi node yang membacanya di konstruktor tidak tahu ada perubahan. Bagian ini membuat node bereaksi, menolak nilai yang salah, dan membaca parameter dari file.
 
 ### Bereaksi dan menolak
 
@@ -1021,11 +866,11 @@ ros2 param load /turtle2/putar ~/ros2_ws/src/latihan_ros/config/putar.yaml
 
 Cara paling cepat membuat file parameter adalah menyetel node sampai perilakunya pas, lalu menyimpannya dengan `ros2 param dump`. Nav2 menyimpan pengaturannya dalam file YAML berbentuk sama, cuma jauh lebih panjang.
 
-## 7. Launch lanjutan
+## 6. Launch lanjutan
 
-Bagian 15 materi dasar menyebut bahwa launch file bisa menerima argumen, memuat file parameter, mengganti nama, dan memanggil launch file lain. Semuanya ada di contoh berikut.
+Bagian 16 materi dasar menyebut bahwa launch file bisa menerima argumen, memuat file parameter, mengganti nama, dan memanggil launch file lain. Semuanya ada di contoh berikut.
 
-File YAML dari bagian 6 harus ikut terpasang, karena launch file membacanya dari `install/`, bukan dari `src/`. Tambahkan baris ini ke `data_files` di `setup.py`, di bawah baris launch dari materi dasar:
+File YAML dari bagian 5 harus ikut terpasang, karena launch file membacanya dari `install/`, bukan dari `src/`. Tambahkan baris ini ke `data_files` di `setup.py`, di bawah baris launch dari materi dasar:
 
 ```python
         (os.path.join('share', package_name, 'config'), glob('config/*.yaml')),
@@ -1124,7 +969,7 @@ IncludeLaunchDescription(
 
 Dengan cara inilah sistem besar disusun. Bringup Nav2, misalnya, terdiri dari satu launch file utama yang memanggil launch file lain dengan argumen yang berbeda-beda. Biasakan membaca launch file orang lain dengan `--show-args` lebih dulu.
 
-## 8. Waktu
+## 7. Waktu
 
 Di ROS ada lebih dari satu jam, dan bedanya baru terasa begitu kalian memakai simulasi atau bag.
 
@@ -1204,13 +1049,13 @@ Ada tiga hal yang terlihat di sini:
 
 | Aturan | Akibat kalau dilanggar |
 |---|---|
-| Kalau ada `/clock`, dari simulasi atau dari bag, semua node memakai `use_sim_time:=true`, termasuk RViz2 | Stempel waktu tidak cocok, dan tf2 mengeluh soal extrapolation di bagian 9 |
+| Kalau ada `/clock`, dari simulasi atau dari bag, semua node memakai `use_sim_time:=true`, termasuk RViz2 | Stempel waktu tidak cocok, dan tf2 mengeluh soal extrapolation di bagian 8 |
 | Stempel waktu pesan diisi `self.get_clock().now().to_msg()` | `time.time()` mengabaikan waktu simulasi |
 | Durasi dan jeda di logika robot diukur dengan `self.get_clock()` | Memutar bag dua kali lebih cepat akan merusak logika yang memakai jam komputer |
 
 Di launch file, `use_sim_time` diisi seperti parameter lain: `parameters=[{'use_sim_time': True}]`. Simulator seperti Gazebo menerbitkan `/clock` sendiri, jadi aturan ini akan kalian pakai setiap kali menjalankan simulasi.
 
-## 9. tf2
+## 8. tf2
 
 Robot punya banyak kerangka acuan, disebut frame. Lidar melaporkan jarak rintangan relatif terhadap dirinya sendiri. Perencana jalur butuh posisi rintangan itu di peta. Di antara keduanya ada badan robot yang terus bergerak. tf2 mencatat hubungan antarframe beserta waktunya, sehingga node mana pun bisa bertanya "di mana titik ini kalau dilihat dari frame itu, pada waktu itu".
 
@@ -1289,7 +1134,7 @@ if __name__ == '__main__':
 | Baris | Kenapa begitu |
 |---|---|
 | `header.frame_id = 'world'`, `child_frame_id = self.kura` | Induk dan anak. Transform ini menyatakan di mana kura-kura berada di dalam `world` |
-| `header.stamp` | Waktu ROS, bukan `time.time()`. Lihat bagian 8 |
+| `header.stamp` | Waktu ROS, bukan `time.time()`. Lihat bagian 7 |
 | `rotation.z = sin(theta / 2)`, `rotation.w = cos(theta / 2)` | Rotasi disimpan sebagai quaternion. Untuk putaran di sumbu z saja, rumusnya cukup dua baris ini |
 | `sendTransform` | Mengirim ke topic `/tf`, yang didengarkan semua pengguna tf2 |
 
@@ -1424,7 +1269,7 @@ ros2 run tf2_ros static_transform_publisher --x 0.5 --frame-id turtle1 --child-f
 ros2 run tf2_ros tf2_echo world turtle1_hidung
 ```
 
-`turtle1_hidung` selalu berada 0.5 satuan di depan turtle1, ke mana pun turtle1 bergerak. tf2 menggabungkan `world` ke `turtle1` dan `turtle1` ke `turtle1_hidung` secara otomatis. Transform statis dikirim ke `/tf_static` dengan QoS yang membuat pendengar yang datang belakangan tetap menerimanya. Detailnya di bagian 10.
+`turtle1_hidung` selalu berada 0.5 satuan di depan turtle1, ke mana pun turtle1 bergerak. tf2 menggabungkan `world` ke `turtle1` dan `turtle1` ke `turtle1_hidung` secara otomatis. Transform statis dikirim ke `/tf_static` dengan QoS yang membuat pendengar yang datang belakangan tetap menerimanya. Detailnya di bagian 9.
 
 Pada robot sungguhan, frame statis seperti ini tidak diketik satu per satu. Frame-frame itu dibaca dari deskripsi robot, yang dibahas bersama Gazebo.
 
@@ -1446,9 +1291,9 @@ Kalau kalian butuh transform pada waktu tertentu, misalnya pada stempel waktu se
 | `Lookup would require extrapolation into the future` | Yang diminta waktu yang datanya belum ada |
 | `Could not find a connection between 'world' and 'odom' because they are not part of the same tree` | Ada dua pohon yang tidak tersambung. Sebuah transform di antara keduanya tidak pernah dikirim |
 
-## 10. QoS lanjutan
+## 9. QoS lanjutan
 
-Bagian 13 materi dasar membahas reliability, durability, dan depth, beserta cara membuatnya cocok. Bagian ini membahas pilihan yang akan kalian temui pada sensor, peta, dan tf2.
+Bagian 14 materi dasar membahas reliability, durability, dan depth, beserta cara membuatnya cocok. Bagian ini membahas pilihan yang akan kalian temui pada sensor, peta, dan tf2.
 
 ### Profil bawaan
 
@@ -1488,11 +1333,11 @@ Pesan itu dikirim sebelum terminal 2 mulai mendengarkan, tapi tetap sampai. Ulan
 
 | Topic | Kenapa `TRANSIENT_LOCAL` |
 |---|---|
-| `/tf_static` | Transform statis dikirim sekali, seperti di bagian 9 |
+| `/tf_static` | Transform statis dikirim sekali, seperti di bagian 8 |
 | `/map` | Peta dimuat sekali, padahal node yang membutuhkannya bisa menyala kapan saja |
 | `/robot_description` | Deskripsi robot, yang dibahas bersama Gazebo |
 
-Periksa sendiri dengan `ros2 topic info /tf_static --verbose` selagi `static_transform_publisher` dari bagian 9 berjalan. Di kode, publisher seperti ini ditulis:
+Periksa sendiri dengan `ros2 topic info /tf_static --verbose` selagi `static_transform_publisher` dari bagian 8 berjalan. Di kode, publisher seperti ini ditulis:
 
 ```python
 from rclpy.qos import DurabilityPolicy, QoSProfile
@@ -1524,7 +1369,7 @@ Depth baru terasa kalau subscriber lebih lambat daripada publisher. Untuk sensor
 
 Ketiganya bawaan tak terbatas. Aturan matriksnya tetap sama: subscriber tidak boleh menuntut lebih dari yang dijanjikan publisher. Akibatnya, subscriber yang meminta deadline tidak akan tersambung ke publisher yang tidak menjanjikan deadline, dan yang muncul cuma `[WARN]` incompatible QoS yang sama seperti di materi dasar. Kalau memakai salah satunya, atur di kedua sisi.
 
-## 11. Debugging lanjutan
+## 10. Debugging lanjutan
 
 Bagian 4 materi dasar mengajarkan cara melihat graf dari luar. Bagian ini menambah alat untuk melihat ke dalam: log, nilai, dan baris kode.
 
@@ -1617,22 +1462,21 @@ Laporan ini memuat versi package, middleware, platform, dan daftar topic. Sertak
 
 ### Rekam dulu, debug kemudian
 
-Bug yang cuma muncul sesekali paling sulit dikejar. Begitu bug itu terlihat, rekam topic masukan node yang bermasalah dengan `ros2 bag record`, seperti di bagian 16 materi dasar. Setelah itu kalian bisa memutar ulang kejadian yang sama persis sebanyak yang diperlukan, sambil menambah log atau `breakpoint()`. Jangan lupa `use_sim_time` dari bagian 8 kalau node tersebut memakai waktu.
+Bug yang cuma muncul sesekali paling sulit dikejar. Begitu bug itu terlihat, rekam topic masukan node yang bermasalah dengan `ros2 bag record`, seperti di bagian 17 materi dasar. Setelah itu kalian bisa memutar ulang kejadian yang sama persis sebanyak yang diperlukan, sambil menambah log atau `breakpoint()`. Jangan lupa `use_sim_time` dari bagian 7 kalau node tersebut memakai waktu.
 
 ### Dari gejala ke bagian
 
 | Gejala | Lihat |
 |---|---|
 | Node berhenti merespons tanpa pesan error | Bagian 1 |
-| `KeyError` atau `invalid field name` saat build interface | Bagian 2 |
-| Pembatalan action tidak pernah dijawab, atau robot terus bergerak | Bagian 3 |
-| Node hidup tapi tidak mengirim apa pun, `ros2 lifecycle get` menunjukkan `inactive` | Bagian 4 |
-| Topic ada, publisher ada, tapi `Subscription count: 0` | Bagian 5 |
-| `ros2 param set` sukses tapi perilaku tidak berubah | Bagian 6 |
-| Launch file tidak menemukan file YAML | Bagian 7, cek `data_files` dan build ulang |
-| Timer tidak pernah berbunyi | Bagian 8, cek `use_sim_time` dan `/clock` |
-| `extrapolation`, `does not exist`, atau `not part of the same tree` | Bagian 9 |
-| Data sensor tidak sampai, ada `[WARN]` incompatible QoS | Bagian 10 |
+| Pembatalan action tidak pernah dijawab, atau robot terus bergerak | Bagian 2 |
+| Node hidup tapi tidak mengirim apa pun, `ros2 lifecycle get` menunjukkan `inactive` | Bagian 3 |
+| Topic ada, publisher ada, tapi `Subscription count: 0` | Bagian 4 |
+| `ros2 param set` sukses tapi perilaku tidak berubah | Bagian 5 |
+| Launch file tidak menemukan file YAML | Bagian 6, cek `data_files` dan build ulang |
+| Timer tidak pernah berbunyi | Bagian 7, cek `use_sim_time` dan `/clock` |
+| `extrapolation`, `does not exist`, atau `not part of the same tree` | Bagian 8 |
+| Data sensor tidak sampai, ada `[WARN]` incompatible QoS | Bagian 9 |
 
 ## Bacaan lanjutan
 
@@ -1642,8 +1486,6 @@ Materi ini disusun untuk urutan perkuliahan kita. Penjelasan resmi yang lebih pa
 |---|---|
 | Executor | [About executors](https://docs.ros.org/en/jazzy/Concepts/Intermediate/About-Executors.html) |
 | Callback group | [Using callback groups](https://docs.ros.org/en/jazzy/How-To-Guides/Using-callback-groups.html) |
-| Interface sendiri | [Creating custom msg and srv files](https://docs.ros.org/en/jazzy/Tutorials/Beginner-Client-Libraries/Custom-ROS2-Interfaces.html) |
-| Action sendiri | [Creating an action](https://docs.ros.org/en/jazzy/Tutorials/Intermediate/Creating-an-Action.html) |
 | Lifecycle | [Managed nodes](https://design.ros2.org/articles/node_lifecycle.html) |
 | Nama, namespace, remap | [Passing ROS arguments to nodes via the command-line](https://docs.ros.org/en/jazzy/How-To-Guides/Node-arguments.html) |
 | Parameter | [About parameters](https://docs.ros.org/en/jazzy/Concepts/Basic/About-Parameters.html) |
@@ -1657,6 +1499,6 @@ Materi ini disusun untuk urutan perkuliahan kita. Penjelasan resmi yang lebih pa
 
 ## Catatan teknis
 
-Semua diagram di materi ini, yaitu peta materi, diagram urutan di bagian 1, diagram state di bagian 4, dan pohon frame di bagian 9, ditulis dengan sintaks mermaid dan khusus dibuat untuk mata kuliah ini. Diagram mermaid tampil sebagai gambar kalau file dibuka lewat GitHub, GitLab, Obsidian, atau pratinjau markdown di VS Code. Di penampil markdown sederhana, isinya tampil sebagai teks dan masih terbaca.
+Semua diagram di materi ini, yaitu peta materi, diagram urutan di bagian 1, diagram state di bagian 3, dan pohon frame di bagian 8, ditulis dengan sintaks mermaid dan khusus dibuat untuk mata kuliah ini. Diagram mermaid tampil sebagai gambar kalau file dibuka lewat GitHub, GitLab, Obsidian, atau pratinjau markdown di VS Code. Di penampil markdown sederhana, isinya tampil sebagai teks dan masih terbaca.
 
 Contoh keluaran terminal di materi ini diambil dari ROS 2 Jazzy di Ubuntu 24.04. Angka stempel waktu dan ID goal di laptop kalian akan berbeda.

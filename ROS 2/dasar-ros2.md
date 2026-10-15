@@ -11,15 +11,15 @@ graph TD
     A["1-3. Konsep<br/>apa itu ROS, kenapa banyak node"] --> B["4. Melihat graf<br/>CLI dan rqt_graph"]
     B --> C["5-6. Node dan topic"]
     C --> D["7-10. Package pertama<br/>publisher dan subscriber"]
-    D --> E["11-12. Service dan action"]
-    E --> F["13. QoS"]
-    F --> G["14-16. Parameter, launch, bag"]
+    D --> E["11-13. Service, action,<br/>interface sendiri"]
+    E --> F["14. QoS"]
+    F --> G["15-17. Parameter, launch, bag"]
 
     style B fill:#2d6a4f,color:#fff
     style F fill:#9d0208,color:#fff
 ```
 
-Bagian 4 dan 13 yang paling sering menyelamatkan kalian saat macet.
+Bagian 4 dan 14 yang paling sering menyelamatkan kalian saat macet.
 
 ## 1. Apa itu ROS, dan apa yang bukan
 
@@ -284,7 +284,7 @@ if __name__ == '__main__':
 
 | Baris | Kenapa begitu |
 |---|---|
-| `create_publisher(String, 'chatter', 10)` | Angka 10 adalah queue depth, bagian dari QoS. Lihat bagian 13 |
+| `create_publisher(String, 'chatter', 10)` | Angka 10 adalah queue depth, bagian dari QoS. Lihat bagian 14 |
 | `create_timer(0.5, self.timer_callback)` | Jangan pernah pakai `while True` dengan `sleep` di dalam node. Timer yang mengatur ritme |
 | `rclpy.spin(node)` | Menyerahkan kendali ke ROS. Tidak kembali sampai node dimatikan. Semua pekerjaan terjadi di dalam callback |
 | `self.get_logger().info(...)` | Bukan `print()`. Log ini punya stempel waktu, punya level, bisa disaring, dan ikut terlihat saat dijalankan lewat launch file |
@@ -716,7 +716,7 @@ if __name__ == '__main__':
 | `goal_handle.succeed()` | Menandai goal berhasil. Kalau lupa, ROS mencetak `Goal state not set, assuming aborted` dan klien menerima status `ABORTED`, walaupun result tetap dikembalikan |
 | `time.sleep(1)` | Pura-pura kerja berat. Lihat catatan di bawah |
 
-Bagian 8 melarang `sleep` di dalam node, dan di sini kita melanggarnya dengan sengaja. Akibatnya, selama satu goal dikerjakan, node ini tidak bisa mengerjakan hal lain. Server ini juga tidak bisa dibatalkan, karena tanpa pengaturan tambahan ROS menolak semua permintaan pembatalan. Untuk contoh sekecil ini tidak masalah. Cara yang benar dibahas di bagian 3 `lanjutan-ros2.md`.
+Bagian 8 melarang `sleep` di dalam node, dan di sini kita melanggarnya dengan sengaja. Akibatnya, selama satu goal dikerjakan, node ini tidak bisa mengerjakan hal lain. Server ini juga tidak bisa dibatalkan, karena tanpa pengaturan tambahan ROS menolak semua permintaan pembatalan. Untuk contoh sekecil ini tidak masalah. Cara yang benar dibahas di bagian 2 `lanjutan-ros2.md`.
 
 Tambahkan `<depend>example_interfaces</depend>` di `package.xml` dan `'fibonacci_server = latihan_ros.fibonacci_server:main',` di `entry_points`, lalu build ulang. Uji dengan CLI, sama seperti service tadi.
 
@@ -853,7 +853,162 @@ Dokumentasi resmi menulis klien yang sama dengan rantai callback, yaitu pola `ad
 
 Kalian akan banyak memakai action nanti saat masuk ke navigasi. Perintah "pergi ke titik ini" di Nav2 adalah sebuah action.
 
-## 13. QoS
+## 13. Interface sendiri
+
+Tipe bawaan seperti `std_msgs/msg/String` dan `geometry_msgs/msg/Twist` cukup untuk banyak hal. Begitu data kalian punya bentuk sendiri, misalnya status robot dengan beberapa kolom, kalian butuh tipe sendiri.
+
+Aturan pertama: interface tidak bisa dibuat di package Python. Pembuat kode interface ROS cuma berjalan di package `ament_cmake`. Jadi kita buat package kedua yang khusus berisi interface, lalu `latihan_ros` memakainya.
+
+```bash
+cd ~/ros2_ws/src
+ros2 pkg create --build-type ament_cmake --license Apache-2.0 latihan_interfaces
+mkdir latihan_interfaces/msg latihan_interfaces/action
+```
+
+Folder `include` dan `src` yang ikut dibuat tidak dipakai. Biarkan saja.
+
+```
+ros2_ws/src/
+├── latihan_ros/              package Python, berisi node
+└── latihan_interfaces/       package CMake, berisi interface saja
+    ├── CMakeLists.txt
+    ├── package.xml
+    ├── msg/
+    │   └── Status.msg
+    └── action/
+        └── Maju.action
+```
+
+### Menulis interface
+
+Buat file `~/ros2_ws/src/latihan_interfaces/msg/Status.msg`:
+
+```
+std_msgs/Header header
+string nama
+float32 baterai
+bool sibuk
+```
+
+Buat file `~/ros2_ws/src/latihan_interfaces/action/Maju.action`:
+
+```
+# Goal
+float32 jarak
+---
+# Result
+float32 ditempuh
+---
+# Feedback
+float32 sisa
+```
+
+`Maju` baru dipakai di bagian 2 `lanjutan-ros2.md` untuk menggerakkan kura-kura maju sejauh `jarak`. Service ditulis dengan cara yang sama di folder `srv`, dengan dua bagian yang dipisah `---`.
+
+Penamaannya diperiksa ketat:
+
+| Yang dinamai | Aturan | Contoh benar | Contoh salah |
+|---|---|---|---|
+| Tipe, yaitu nama file | Diawali huruf besar, tanpa garis bawah | `Status.msg` | `status.msg` |
+| Field | Huruf kecil, angka, dan garis bawah, diawali huruf | `baterai` | `Baterai` |
+
+### Mendaftarkan dan membangun
+
+Tambahkan di `latihan_interfaces/CMakeLists.txt`, tepat sebelum baris `ament_package()`:
+
+```cmake
+find_package(rosidl_default_generators REQUIRED)
+find_package(std_msgs REQUIRED)
+
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/Status.msg"
+  "action/Maju.action"
+  DEPENDENCIES std_msgs
+)
+```
+
+Tambahkan di `latihan_interfaces/package.xml`, di bawah baris `<buildtool_depend>ament_cmake</buildtool_depend>`:
+
+```xml
+  <buildtool_depend>rosidl_default_generators</buildtool_depend>
+  <depend>std_msgs</depend>
+  <exec_depend>rosidl_default_runtime</exec_depend>
+  <member_of_group>rosidl_interface_packages</member_of_group>
+```
+
+| Baris | Gunanya |
+|---|---|
+| `rosidl_generate_interfaces(...)` | Daftar file yang diubah menjadi kode Python dan C++ |
+| `DEPENDENCIES std_msgs` | `Status` memakai `std_msgs/Header`. Setiap package interface lain yang dipakai wajib disebut di sini |
+| `<member_of_group>rosidl_interface_packages</member_of_group>` | Menandai package ini sebagai package interface |
+
+Build dari akar workspace seperti biasa:
+
+```bash
+cd ~/ros2_ws
+colcon build --symlink-install
+source install/setup.bash
+ros2 interface show latihan_interfaces/msg/Status
+```
+
+```
+std_msgs/Header header
+	builtin_interfaces/Time stamp
+		int32 sec
+		uint32 nanosec
+	string frame_id
+string nama
+float32 baterai
+bool sibuk
+```
+
+Coba tanpa menulis kode. Terminal 1:
+
+```bash
+ros2 topic echo /status latihan_interfaces/msg/Status
+```
+
+Terminal 2:
+
+```bash
+ros2 topic pub --once /status latihan_interfaces/msg/Status "{header: {stamp: now, frame_id: base_link}, nama: robot1, baterai: 0.75, sibuk: false}"
+```
+
+Kata `now` diisi waktu saat itu oleh `ros2 topic pub`. Terminal 1 mencetak:
+
+```
+header:
+  stamp:
+    sec: 1792030417
+    nanosec: 199560429
+  frame_id: base_link
+nama: robot1
+baterai: 0.75
+sibuk: false
+---
+```
+
+Tipe topic sengaja ditulis di perintah `echo`. Dengan begitu `echo` bisa mulai mendengarkan sebelum ada publisher.
+
+### Memakai interface dari package lain
+
+Package yang memakai interface ini harus menyebutnya di `package.xml`-nya sendiri, misalnya `<depend>latihan_interfaces</depend>` di `latihan_ros`. Dengan baris itu `colcon` tahu bahwa `latihan_interfaces` harus dibangun lebih dulu. Di kode Python, import-nya sama seperti tipe bawaan:
+
+```python
+from latihan_interfaces.action import Maju
+from latihan_interfaces.msg import Status
+```
+
+Setiap kali isi file `.msg` atau `.action` berubah, build ulang, source ulang, lalu jalankan ulang semua node yang memakainya.
+
+| Gejala | Penyebab |
+|---|---|
+| Build gagal, `'Baterai' is an invalid field name.  It should have the pattern '^(?!.*__)(?!.*_$)[a-z][a-z0-9_]*$'` | Nama field diawali huruf besar |
+| Build gagal, `'status' is an invalid message name.  It should have the pattern '^[A-Z][A-Za-z0-9]*$'` | Nama file diawali huruf kecil |
+| Build gagal dengan `KeyError: 'std_msgs'` | Lupa `DEPENDENCIES std_msgs` di `rosidl_generate_interfaces` |
+| `ModuleNotFoundError: No module named 'latihan_interfaces'` | Belum `source install/setup.bash` setelah build |
+
+## 14. QoS
 
 Bagian ini sering dilewati mahasiswa, lalu membuang waktu berjam-jam karena topic yang kelihatannya benar tapi tidak menyambung.
 
@@ -947,7 +1102,7 @@ self.pub = self.create_publisher(String, 'chatter', qos)
 
 `create_subscription` menerima profil di posisi yang sama. Coba pasang profil di atas ke publisher talker sambil membiarkan listener tetap memakai `10`. Listener diam, dan kedua terminal mencetak `[WARN]` yang sama seperti percobaan CLI tadi. Kembalikan talker ke `10` setelah selesai.
 
-## 14. Parameter
+## 15. Parameter
 
 Nilai yang mungkin ingin kalian ubah tanpa mengubah kode sebaiknya jadi parameter. Contohnya kecepatan maksimum, nama frame, nama port serial.
 
@@ -1058,7 +1213,7 @@ Nilai yang dibaca di konstruktor tetap bisa diatur, asalkan sebelum node hidup:
 ros2 run latihan_ros param_talker --ros-args -p period:=0.1
 ```
 
-Kali ini `ros2 topic hz /chatter` menunjukkan 10. Cara membuat node bereaksi saat parameter berubah di tengah jalan dibahas di bagian 6 `lanjutan-ros2.md`.
+Kali ini `ros2 topic hz /chatter` menunjukkan 10. Cara membuat node bereaksi saat parameter berubah di tengah jalan dibahas di bagian 5 `lanjutan-ros2.md`.
 
 Terakhir, tipe parameter mengikuti nilai bawaannya. `period` dideklarasikan dengan `0.5`, jadi bertipe desimal, dan perintah berikut ditolak:
 
@@ -1072,7 +1227,7 @@ Setting parameter failed: Wrong parameter type, expected 'Type.DOUBLE' got 'Type
 
 Tulis `1.0`.
 
-## 15. Launch file
+## 16. Launch file
 
 Setelah sistem kalian berisi lima node, menjalankannya satu per satu di lima terminal jadi menyiksa.
 
@@ -1128,9 +1283,9 @@ cd ~/ros2_ws && colcon build --symlink-install && source install/setup.bash
 ros2 launch latihan_ros latihan.launch.py
 ```
 
-Launch file bisa jauh lebih pintar dari contoh ini. Bisa menerima argumen, memuat file parameter, mengganti nama topic, dan memanggil launch file lain. Untuk sekarang cukup tahu bahwa file ini yang akan kalian pakai untuk menyalakan seluruh robot. Semua kemampuan tadi dibahas di bagian 7 `lanjutan-ros2.md`.
+Launch file bisa jauh lebih pintar dari contoh ini. Bisa menerima argumen, memuat file parameter, mengganti nama topic, dan memanggil launch file lain. Untuk sekarang cukup tahu bahwa file ini yang akan kalian pakai untuk menyalakan seluruh robot. Semua kemampuan tadi dibahas di bagian 6 `lanjutan-ros2.md`.
 
-## 16. Merekam dan memutar ulang
+## 17. Merekam dan memutar ulang
 
 Karena semua yang penting lewat topic, seluruhnya bisa direkam.
 
@@ -1167,7 +1322,7 @@ Saat diputar ulang, node lain tidak bisa membedakan data rekaman dengan data asl
 
 Tugas mingguan di kelas ini dikumpulkan dalam bentuk bag. Sistem penilaian memutar ulang rekaman kalian dan memeriksa topic serta isinya. Karena itu, apa pun sistem operasi yang kalian pakai, penilaiannya sama.
 
-## 17. Kesalahan yang paling sering terjadi
+## 18. Kesalahan yang paling sering terjadi
 
 | Gejala | Penyebab | Solusi |
 |---|---|---|
@@ -1203,6 +1358,8 @@ Materi ini adalah ringkasan yang disusun untuk urutan perkuliahan kita. Penjelas
 | Action di kode | [Writing an action server and client (Python)](https://docs.ros.org/en/jazzy/Tutorials/Intermediate/Writing-an-Action-Server-Client/Py.html) |
 | Parameter | [Understanding parameters](https://docs.ros.org/en/jazzy/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Parameters/Understanding-ROS2-Parameters.html) |
 | Parameter di kode | [Using parameters in a class (Python)](https://docs.ros.org/en/jazzy/Tutorials/Beginner-Client-Libraries/Using-Parameters-In-A-Class-Python.html) |
+| Interface sendiri | [Creating custom msg and srv files](https://docs.ros.org/en/jazzy/Tutorials/Beginner-Client-Libraries/Custom-ROS2-Interfaces.html) |
+| Action sendiri | [Creating an action](https://docs.ros.org/en/jazzy/Tutorials/Intermediate/Creating-an-Action.html) |
 | QoS | [About Quality of Service settings](https://docs.ros.org/en/jazzy/Concepts/Intermediate/About-Quality-of-Service-Settings.html) |
 | Bag | [Recording and playing back data](https://docs.ros.org/en/jazzy/Tutorials/Beginner-CLI-Tools/Recording-And-Playing-Back-Data/Recording-And-Playing-Back-Data.html) |
 
@@ -1212,4 +1369,4 @@ Animasi dan screenshot di bagian 4, 6, 11, dan 12 diambil dari dokumentasi resmi
 
 File disalin ke folder lokal, bukan ditautkan langsung ke internet, supaya materi tetap tampil utuh tanpa koneksi internet.
 
-Diagram selebihnya, yaitu peta materi di awal, diagram beda kecepatan node di bagian 2, diagram launch file di bagian 15, dan diagram bag di bagian 16, ditulis dengan sintaks mermaid dan khusus dibuat untuk mata kuliah ini. Diagram mermaid tampil sebagai gambar kalau file dibuka lewat GitHub, GitLab, Obsidian, atau pratinjau markdown di VS Code. Di penampil markdown sederhana, isinya tampil sebagai teks dan masih terbaca.
+Diagram selebihnya, yaitu peta materi di awal, diagram beda kecepatan node di bagian 2, diagram launch file di bagian 16, dan diagram bag di bagian 17, ditulis dengan sintaks mermaid dan khusus dibuat untuk mata kuliah ini. Diagram mermaid tampil sebagai gambar kalau file dibuka lewat GitHub, GitLab, Obsidian, atau pratinjau markdown di VS Code. Di penampil markdown sederhana, isinya tampil sebagai teks dan masih terbaca.
