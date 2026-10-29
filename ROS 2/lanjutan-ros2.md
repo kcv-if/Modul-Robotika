@@ -249,6 +249,7 @@ Tambahkan di `latihan_ros/package.xml`:
 
 ```xml
   <depend>geometry_msgs</depend>
+  <depend>turtlesim</depend>
   <depend>latihan_interfaces</depend>
 ```
 
@@ -708,7 +709,57 @@ Node ini mengirim ke `/cmd_vel`, dan `ros2 topic info` menunjukkan `Subscription
 
 ### Jebakan nama absolut
 
-`rotate_client` dari materi dasar menulis `'/turtle1/rotate_absolute'`, nama absolut. Coba jalankan dalam namespace `/turtle2`:
+Klien berikut memutar kura-kura lewat action milik turtlesim. Bentuknya sama dengan `fibonacci_client` di materi dasar, bedanya nama action-nya ditulis absolut: `'/turtle1/rotate_absolute'`.
+
+Buat file `~/ros2_ws/src/latihan_ros/latihan_ros/rotate_client.py`:
+
+```python
+import rclpy
+from rclpy.action import ActionClient
+from rclpy.node import Node
+from turtlesim.action import RotateAbsolute
+
+
+class RotateClient(Node):
+    def __init__(self):
+        super().__init__('rotate_client')
+        self.client = ActionClient(self, RotateAbsolute, '/turtle1/rotate_absolute')
+
+    def send_goal(self, theta):
+        goal = RotateAbsolute.Goal()
+        goal.theta = theta
+        self.client.wait_for_server()
+        return self.client.send_goal_async(goal, feedback_callback=self.feedback_callback)
+
+    def feedback_callback(self, feedback_msg):
+        self.get_logger().info(f'sisa putaran: {feedback_msg.feedback.remaining:.2f} rad')
+
+
+def main():
+    rclpy.init()
+    node = RotateClient()
+
+    goal_future = node.send_goal(1.57)
+    rclpy.spin_until_future_complete(node, goal_future)
+    goal_handle = goal_future.result()
+
+    if not goal_handle.accepted:
+        node.get_logger().info('goal ditolak')
+    else:
+        result_future = goal_handle.get_result_async()
+        rclpy.spin_until_future_complete(node, result_future)
+        result = result_future.result().result
+        node.get_logger().info(f'selesai, berputar {result.delta:.2f} rad')
+
+    node.destroy_node()
+    rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()
+```
+
+Daftarkan `'rotate_client = latihan_ros.rotate_client:main',` dan build ulang. Coba jalankan dalam namespace `/turtle2`:
 
 ```bash
 ros2 run latihan_ros rotate_client --ros-args -r __ns:=/turtle2

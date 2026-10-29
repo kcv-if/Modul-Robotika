@@ -759,37 +759,37 @@ Goal finished with status: SUCCEEDED
 
 ### Menulis action client
 
-Server tadi kalian uji dengan CLI. Klien diuji dengan cara sebaliknya, yaitu dengan server yang sudah pasti benar: milik turtlesim. Pastikan `turtlesim_node` sedang berjalan.
+Sekarang kita tulis klien untuk `fibonacci_server` tadi. Biarkan server berjalan di terminal 1.
 
-Buat file `~/ros2_ws/src/latihan_ros/latihan_ros/rotate_client.py`:
+Buat file `~/ros2_ws/src/latihan_ros/latihan_ros/fibonacci_client.py`:
 
 ```python
 import rclpy
 from rclpy.action import ActionClient
 from rclpy.node import Node
-from turtlesim.action import RotateAbsolute
+from example_interfaces.action import Fibonacci
 
 
-class RotateClient(Node):
+class FibonacciClient(Node):
     def __init__(self):
-        super().__init__('rotate_client')
-        self.client = ActionClient(self, RotateAbsolute, '/turtle1/rotate_absolute')
+        super().__init__('fibonacci_client')
+        self.client = ActionClient(self, Fibonacci, 'fibonacci')
 
-    def send_goal(self, theta):
-        goal = RotateAbsolute.Goal()
-        goal.theta = theta
+    def send_goal(self, order):
+        goal = Fibonacci.Goal()
+        goal.order = order
         self.client.wait_for_server()
         return self.client.send_goal_async(goal, feedback_callback=self.feedback_callback)
 
     def feedback_callback(self, feedback_msg):
-        self.get_logger().info(f'sisa putaran: {feedback_msg.feedback.remaining:.2f} rad')
+        self.get_logger().info(f'feedback: {list(feedback_msg.feedback.sequence)}')
 
 
 def main():
     rclpy.init()
-    node = RotateClient()
+    node = FibonacciClient()
 
-    goal_future = node.send_goal(1.57)
+    goal_future = node.send_goal(5)
     rclpy.spin_until_future_complete(node, goal_future)
     goal_handle = goal_future.result()
 
@@ -799,7 +799,7 @@ def main():
         result_future = goal_handle.get_result_async()
         rclpy.spin_until_future_complete(node, result_future)
         result = result_future.result().result
-        node.get_logger().info(f'selesai, berputar {result.delta:.2f} rad')
+        node.get_logger().info(f'selesai: {list(result.sequence)}')
 
     node.destroy_node()
     rclpy.shutdown()
@@ -811,32 +811,30 @@ if __name__ == '__main__':
 
 | Baris | Kenapa begitu |
 |---|---|
-| `ActionClient(self, RotateAbsolute, '/turtle1/rotate_absolute')` | Tipe dan nama action milik turtlesim, sama dengan yang tadi dipakai di CLI |
-| `wait_for_server()` | Menunggu sampai server ada, tanpa batas waktu. Kalau turtlesim mati, klien diam selamanya |
+| `ActionClient(self, Fibonacci, 'fibonacci')` | Tipe dan nama harus sama dengan milik server |
+| `wait_for_server()` | Menunggu sampai server ada, tanpa batas waktu. Kalau `fibonacci_server` tidak jalan, klien diam selamanya |
 | `send_goal_async(goal, feedback_callback=...)` | Mengirim goal. Future yang dikembalikan berisi jawaban pertama server: goal diterima atau ditolak |
 | `goal_handle.get_result_async()` | Future kedua, berisi result setelah goal selesai dikerjakan |
 | `feedback_callback` | Dipanggil setiap kali feedback datang, selama `spin_until_future_complete` berjalan |
+| `list(...sequence)` | `sequence` berupa `array.array`. Dibungkus `list` supaya tercetak rapi |
 
 Ada dua future karena action punya dua tahap. Goal diterima dulu, baru selesai belakangan. Server juga boleh menolak goal sejak awal, misalnya karena sedang sibuk.
 
-Tambahkan `<depend>turtlesim</depend>` di `package.xml` dan `'rotate_client = latihan_ros.rotate_client:main',` di `entry_points`, build ulang, lalu jalankan:
+Daftarkan `'fibonacci_client = latihan_ros.fibonacci_client:main',` di `entry_points`, build ulang, lalu jalankan di terminal 2:
 
 ```bash
-ros2 run latihan_ros rotate_client
+ros2 run latihan_ros fibonacci_client
 ```
 
 ```
-[INFO] [1792029523.386395103] [rotate_client]: sisa putaran: 1.57 rad
-[INFO] [1792029523.393580223] [rotate_client]: sisa putaran: 1.55 rad
-...
-[INFO] [1792029524.929938270] [rotate_client]: sisa putaran: 0.02 rad
-[INFO] [1792029524.930237698] [rotate_client]: selesai, berputar -1.55 rad
+[INFO] [1793239272.579233625] [fibonacci_client]: feedback: [0, 1, 1]
+[INFO] [1793239273.573196835] [fibonacci_client]: feedback: [0, 1, 1, 2]
+[INFO] [1793239274.573542675] [fibonacci_client]: feedback: [0, 1, 1, 2, 3]
+[INFO] [1793239275.573829102] [fibonacci_client]: feedback: [0, 1, 1, 2, 3, 5]
+[INFO] [1793239276.574831706] [fibonacci_client]: selesai: [0, 1, 1, 2, 3, 5]
 ```
 
-Feedback datang puluhan kali per detik, mengikuti kecepatan turtlesim memperbarui posisinya. Ada dua hal di sini yang sering membingungkan:
-
-- Tanda minus pada result bukan kesalahan. Definisinya di `ros2 interface show turtlesim/action/RotateAbsolute` berbunyi "angular displacement in radians to the starting position", yaitu sudut untuk kembali ke posisi awal. Arahnya berlawanan dengan putaran yang barusan terjadi.
-- Kalau dijalankan dua kali, kura-kura nyaris tidak bergerak di percobaan kedua. `theta` adalah arah mutlak, bukan tambahan, dan kura-kuranya sudah menghadap ke sana.
+Feedback datang satu per detik, persis seperti di CLI tadi. Coba jalankan klien di dua terminal sekaligus. Klien kedua baru mendapat feedback pertamanya setelah goal klien pertama selesai, karena `time.sleep` di server memblokir seluruh node.
 
 Dokumentasi resmi menulis klien yang sama dengan rantai callback, yaitu pola `add_done_callback` seperti di `reset_berkala`. Pakai pola itu kalau goal dikirim dari dalam callback, karena aturan di bagian 11 berlaku juga untuk action: jangan menunggu di dalam callback.
 
