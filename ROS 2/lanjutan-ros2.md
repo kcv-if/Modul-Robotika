@@ -18,7 +18,7 @@ graph TD
     style C fill:#2d6a4f,color:#fff
 ```
 
-Bagian 1 menjelaskan kenapa node bisa macet tanpa pesan error apa pun. Bagian 8 yang paling banyak kalian pakai begitu masuk ke Gazebo dan Nav2.
+Bagian 1 menjelaskan kenapa node bisa macet tanpa pesan error apa pun. Bagian 8 yang paling banyak kalian pakai begitu masuk ke Gazebo.
 
 ## 1. Executor dan callback group
 
@@ -241,7 +241,7 @@ ros2 node list
 
 `fibonacci_server` di materi dasar punya dua kekurangan yang sudah disebut di sana. Selama satu goal berjalan, node itu tidak bisa mengerjakan hal lain, dan goal-nya tidak bisa dibatalkan. Server yang menggerakkan robot sungguhan tidak boleh begitu. Robot harus bisa dihentikan di tengah jalan, dan selama bergerak ia harus terus membaca sensornya.
 
-Server di bagian ini memakai `Maju` dari bagian 13 materi dasar. Kura-kura maju lurus sejauh `jarak` sambil terus membaca posisinya sendiri. Bentuknya sama dengan yang dikerjakan Nav2 dalam skala besar: menerima tujuan, bergerak sambil memantau posisi, melaporkan kemajuan, dan berhenti kalau dibatalkan.
+Server di bagian ini memakai `Maju` dari bagian 13 materi dasar. Kura-kura maju lurus sejauh `jarak` sambil terus membaca posisinya sendiri. Polanya umum untuk robot yang bergerak: menerima tujuan, bergerak sambil memantau posisi, melaporkan kemajuan, dan berhenti kalau dibatalkan.
 
 ### Menulis server yang bisa dibatalkan
 
@@ -493,7 +493,7 @@ Kembalikan `main` seperti semula sebelum lanjut.
 
 ## 3. Lifecycle node
 
-Node biasa langsung bekerja begitu dijalankan. Untuk sistem besar itu merepotkan. Nav2 misalnya terdiri dari banyak server yang saling bergantung. Perencana jalur tidak berguna sebelum peta dimuat, dan pengendali tidak boleh menggerakkan roda sebelum semuanya siap. Karena itu server-server Nav2 ditulis sebagai lifecycle node, yaitu node yang punya tahapan hidup dan baru bekerja setelah disuruh.
+Node biasa langsung bekerja begitu dijalankan. Untuk sistem besar itu merepotkan. Sistem seperti itu terdiri dari banyak node yang saling bergantung. Perencana jalur tidak berguna sebelum peta dimuat, dan pengendali tidak boleh menggerakkan roda sebelum semuanya siap. Untuk kasus seperti ini dipakai lifecycle node, yaitu node yang punya tahapan hidup dan baru bekerja setelah disuruh.
 
 ```mermaid
 stateDiagram-v2
@@ -613,7 +613,7 @@ ros2 lifecycle set /lc_talker deactivate
 
 `list` menampilkan perpindahan yang boleh dilakukan dari state sekarang, dan `deactivate` menghentikan kiriman lagi. Setiap perpindahan juga diumumkan di topic `/lc_talker/transition_event`.
 
-Nav2 menyalakan server-servernya lewat node bernama `lifecycle_manager`, yang memanggil configure lalu activate satu per satu. Kalau Nav2 diam saja, periksa dengan `ros2 lifecycle get` apakah semua server-nya sudah `active`.
+Sistem yang berisi banyak lifecycle node biasanya punya satu node pengelola yang memanggil configure lalu activate satu per satu. Kalau sistemnya diam saja, periksa dengan `ros2 lifecycle get` apakah semua node-nya sudah `active`.
 
 ## 4. Nama
 
@@ -915,7 +915,7 @@ ros2 param load /turtle2/putar ~/ros2_ws/src/latihan_ros/config/putar.yaml
     use_sim_time: false
 ```
 
-Cara paling cepat membuat file parameter adalah menyetel node sampai perilakunya pas, lalu menyimpannya dengan `ros2 param dump`. Nav2 menyimpan pengaturannya dalam file YAML berbentuk sama, cuma jauh lebih panjang.
+Cara paling cepat membuat file parameter adalah menyetel node sampai perilakunya pas, lalu menyimpannya dengan `ros2 param dump`.
 
 ## 6. Launch lanjutan
 
@@ -1018,7 +1018,7 @@ IncludeLaunchDescription(
 ),
 ```
 
-Dengan cara inilah sistem besar disusun. Bringup Nav2, misalnya, terdiri dari satu launch file utama yang memanggil launch file lain dengan argumen yang berbeda-beda. Biasakan membaca launch file orang lain dengan `--show-args` lebih dulu.
+Dengan cara inilah sistem besar disusun. Satu launch file utama memanggil launch file lain dengan argumen yang berbeda-beda. Biasakan membaca launch file orang lain dengan `--show-args` lebih dulu.
 
 ## 7. Waktu
 
@@ -1135,7 +1135,7 @@ graph TD
 | `base_link` | Badan robot | Menempel di robot |
 | `base_scan`, `camera_link` | Sensor | Tidak bergerak relatif terhadap `base_link` |
 
-Nama-nama ini akan kalian temui lagi di Gazebo dan Nav2. Untuk sekarang kita latihan dengan frame yang lebih sederhana: `world` untuk arena turtlesim, dan satu frame untuk setiap kura-kura.
+Nama-nama ini akan kalian temui lagi di Gazebo. Untuk sekarang kita latihan dengan frame yang lebih sederhana: `world` untuk arena turtlesim, dan satu frame untuk setiap kura-kura.
 
 ### Menyiarkan frame
 
@@ -1322,7 +1322,7 @@ ros2 run tf2_ros tf2_echo world turtle1_hidung
 
 `turtle1_hidung` selalu berada 0.5 satuan di depan turtle1, ke mana pun turtle1 bergerak. tf2 menggabungkan `world` ke `turtle1` dan `turtle1` ke `turtle1_hidung` secara otomatis. Transform statis dikirim ke `/tf_static` dengan QoS yang membuat pendengar yang datang belakangan tetap menerimanya. Detailnya di bagian 9.
 
-Pada robot sungguhan, frame statis seperti ini tidak diketik satu per satu. Frame-frame itu dibaca dari deskripsi robot, yang dibahas bersama Gazebo.
+Pada robot sungguhan, frame statis seperti ini tidak diketik satu per satu. Frame-frame itu dibaca dari deskripsi robot, yang dibahas di bagian 6 dan 8 `../Gazebo/dasar-gazebo.md`.
 
 ### Waktu dalam lookup
 
@@ -1386,7 +1386,7 @@ Pesan itu dikirim sebelum terminal 2 mulai mendengarkan, tapi tetap sampai. Ulan
 |---|---|
 | `/tf_static` | Transform statis dikirim sekali, seperti di bagian 8 |
 | `/map` | Peta dimuat sekali, padahal node yang membutuhkannya bisa menyala kapan saja |
-| `/robot_description` | Deskripsi robot, yang dibahas bersama Gazebo |
+| `/robot_description` | Deskripsi robot, yang dibahas di bagian 8 `../Gazebo/dasar-gazebo.md` |
 
 Periksa sendiri dengan `ros2 topic info /tf_static --verbose` selagi `static_transform_publisher` dari bagian 8 berjalan. Di kode, publisher seperti ini ditulis:
 
@@ -1530,6 +1530,8 @@ Bug yang cuma muncul sesekali paling sulit dikejar. Begitu bug itu terlihat, rek
 | Data sensor tidak sampai, ada `[WARN]` incompatible QoS | Bagian 9 |
 
 ## Bacaan lanjutan
+
+Kelanjutan materi ini ada di `../Gazebo/dasar-gazebo.md`.
 
 Materi ini disusun untuk urutan perkuliahan kita. Penjelasan resmi yang lebih panjang ada di dokumentasi ROS 2.
 
